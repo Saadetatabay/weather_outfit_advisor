@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import os
 from google import genai
 
+load_dotenv()
 
 def get_outfit_advice(temp,description):
     client = genai.Client(api_key=os.getenv("API_KEY_GEMINI"))

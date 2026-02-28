@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Weather Outfit Advisor</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sky: #0a0f1e;
+      --mid: #0d1b3e;
+      --accent: #4fc3f7;
+      --gold: #f5c842;
+      --text: #e8eaf6;
+      --muted: #7986cb;
+      --card: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.1);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--sky);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Animated sky background */
+    .sky-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background: radial-gradient(ellipse at 20% 20%, #1a237e 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 80%, #01579b 0%, transparent 50%),
+                  radial-gradient(ellipse at 50% 50%, #0a0f1e 0%, #050810 100%);
+    }
+
+    .stars {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 25% 40%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 45% 10%, rgba(255,255,255,0.7) 0%, transparent 100%),
+        radial-gradient(1px 1px at 60% 30%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 75% 60%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 85% 20%, rgba(255,255,255,0.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 35% 70%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(2px 2px at 55% 85%, rgba(255,255,255,0.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 15% 90%, rgba(255,255,255,0.4) 0%, transparent 100%);
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 60px 24px 80px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 56px;
+      animation: fadeDown 0.8s ease both;
+    }
+
+    .logo {
+      font-size: 13px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 6vw, 3.2rem);
+      font-weight: 700;
+      line-height: 1.1;
+      background: linear-gradient(135deg, #fff 0%, var(--accent) 60%, var(--gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 300;
+    }
+
+    /* Search card */
+    .search-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      backdrop-filter: blur(20px);
+      animation: fadeUp 0.8s ease 0.2s both;
+      margin-bottom: 32px;
+    }
+
+    .input-group {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .city-input {
+      flex: 1;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .city-input::placeholder { color: var(--muted); }
+    .city-input:focus {
+      border-color: var(--accent);
+      background: rgba(79,195,247,0.05);
+    }
+
+    .submit-btn {
+      background: linear-gradient(135deg, var(--accent), #0288d1);
+      border: none;
+      border-radius: 12px;
+      padding: 16px 28px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      color: #0a0f1e;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(79,195,247,0.3); }
+    .submit-btn:active { transform: translateY(0); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* Loading */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 40px;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .loading.show { display: block; }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    .loading p { color: var(--muted); font-size: 14px; }
+
+    /* Result card */
+    .result-card {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .result-card.show { display: block; }
+
+    .result-header {
+      padding: 24px 32px;
+      background: linear-gradient(135deg, rgba(79,195,247,0.1), rgba(245,200,66,0.05));
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .city-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .weather-badge {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .temp {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--gold);
+      font-family: 'Playfair Display', serif;
+    }
+
+    .desc {
+      font-size: 13px;
+      color: var(--muted);
+      text-transform: capitalize;
+      background: rgba(255,255,255,0.07);
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    .result-body {
+      padding: 32px;
+    }
+
+    .advice-label {
+      font-size: 11px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .advice-text {
+      font-size: 15px;
+      line-height: 1.8;
+      color: #c5cae9;
+      white-space: pre-wrap;
+    }
+
+    /* Error */
+    .error-card {
+      display: none;
+      background: rgba(244,67,54,0.08);
+      border: 1px solid rgba(244,67,54,0.2);
+      border-radius: 16px;
+      padding: 20px 24px;
+      color: #ef9a9a;
+      font-size: 14px;
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .error-card.show { display: block; }
+
+    /* Animations */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Examples */
+    .examples {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .example-chip {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .example-chip:hover {
+      background: rgba(79,195,247,0.1);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+  <div class="sky-bg"></div>
+  <div class="stars"></div>
+
+  <div class="container">
+    <header>
+      <p class="logo">Weather × Style</p>
+      <h1>What Should I Wear Today?</h1>
+      <p class="subtitle">AI-powered outfit advice based on real-time weather</p>
+    </header>
+
+    <div class="search-card">
+      <div class="input-group">
+        <input
+          class="city-input"
+          type="text"
+          id="cityInput"
+          placeholder="Enter a city... e.g. Istanbul"
+          autocomplete="off"
+        />
+        <button class="submit-btn" id="submitBtn" onclick="getAdvice()">
+          Get Advice →
+        </button>
+      </div>
+      <div class="examples">
+        <span class="example-chip" onclick="setCity('Istanbul')">Istanbul</span>
+        <span class="example-chip" onclick="setCity('Tokyo')">Tokyo</span>
+        <span class="example-chip" onclick="setCity('London')">London</span>
+        <span class="example-chip" onclick="setCity('New York')">New York</span>
+        <span class="example-chip" onclick="setCity('Dubai')">Dubai</span>
+      </div>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Checking the weather & consulting the AI stylist...</p>
+    </div>
+
+    <div class="error-card" id="errorCard"></div>
+
+    <div class="result-card" id="resultCard">
+      <div class="result-header">
+        <div class="city-name" id="resultCity"></div>
+        <div class="weather-badge">
+          <div class="temp" id="resultTemp"></div>
+          <div class="desc" id="resultDesc"></div>
+        </div>
+      </div>
+      <div class="result-body">
+        <p class="advice-label">Outfit Advice</p>
+        <div class="advice-text" id="resultAdvice"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const cityInput = document.getElementById('cityInput');
+    cityInput.addEventListener('keydown', e => { if (e.key === 'Enter') getAdvice(); });
+
+    function setCity(name) {
+      cityInput.value = name;
+      cityInput.focus();
+    }
+
+    function show(el) { el.classList.add('show'); }
+    function hide(el) { el.classList.remove('show'); }
+
+    async function getAdvice() {
+      const city = cityInput.value.trim();
+      if (!city) { cityInput.focus(); return; }
+
+      const btn = document.getElementById('submitBtn');
+      const loading = document.getElementById('loading');
+      const errorCard = document.getElementById('errorCard');
+      const resultCard = document.getElementById('resultCard');
+
+      btn.disabled = true;
+      hide(errorCard);
+      hide(resultCard);
+      show(loading);
+
+      try {
+        const res = await fetch('/advice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ city })
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.detail || `Error ${res.status}`);
+        }
+
+        const data = await res.json();
+
+        document.getElementById('resultCity').textContent = data.city;
+        document.getElementById('resultTemp').textContent = `${data.temperature}°C`;
+        document.getElementById('resultDesc').textContent = data.description;
+        document.getElementById('resultAdvice').textContent = data.outfit_advice;
+
+        hide(loading);
+        show(resultCard);
+      } catch (err) {
+        hide(loading);
+        errorCard.textContent = `⚠️ ${err.message || 'Something went wrong. Please try again.'}`;
+        show(errorCard);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

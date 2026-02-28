@@ -9,7 +9,6 @@ api_key= os.getenv("API_KEY_WEATHER")
 url = "https://api.openweathermap.org/data/2.5/weather"
 
 def get_weather(city:str):
-    print(f"API KEY: {api_key}")
     params={"q":city,"appid":api_key,"units":"metric"}
     response = requests.get(url,params)
     response.raise_for_status()
